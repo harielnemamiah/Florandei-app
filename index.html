@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2d5016">
+    
+    <title>Florandei</title>
+    
+    <!-- Leaflet CSS para mapas -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- CSS customizado -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Manifest para PWA -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Ícone -->
+    <link rel="icon" type="image/png" href="icon.png">
+</head>
+<body>
+    <!-- Tela de Loading -->
+    <div id="loading-screen">
+        <div class="loading-content">
+            <img src="icon.png" alt="Florandei" class="loading-icon">
+            <h2>Florandei</h2>
+            <p>Carregando mapa...</p>
+        </div>
+    </div>
+
+    <!-- Container Principal -->
+    <div id="app" style="display: none;">
+        <!-- Header -->
+        <header id="header">
+            <div class="header-content">
+                <h1>🌿 Florandei</h1>
+                <div class="header-actions">
+                    <button id="btn-list" class="icon-btn" title="Ver Lista">📋</button>
+                    <button id="btn-stats" class="icon-btn" title="Estatísticas">📊</button>
+                    <button id="btn-export" class="icon-btn" title="Exportar Dados">💾</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Mapa -->
+        <div id="map"></div>
+
+        <!-- Botão Flutuante de Adicionar -->
+        <button id="fab-add" class="fab" title="Adicionar Registro">
+            <span class="fab-icon">+</span>
+        </button>
+
+        <!-- Botão de Localização -->
+        <button id="btn-location" class="location-btn" title="Minha Localização">
+            <span>📍</span>
+        </button>
+
+        <!-- Modal de Adicionar/Editar Registro -->
+        <div id="modal-registro" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title">Novo Registro</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Preview da Localização -->
+                    <div class="location-preview">
+                        <p><strong>📍 Localização:</strong></p>
+                        <p id="location-coords">Clique no mapa ou arraste o marcador</p>
+                        <small id="location-accuracy"></small>
+                    </div>
+
+                    <!-- Foto -->
+                    <div class="form-group">
+                        <label>📷 Foto da Planta</label>
+                        <input type="file" id="input-photo" accept="image/*" capture="environment">
+                        <div id="photo-preview" class="photo-preview"></div>
+                    </div>
+
+                    <!-- Descrição -->
+                    <div class="form-group">
+                        <label for="input-description">📝 Descrição/Identificação</label>
+                        <textarea id="input-description" rows="4" placeholder="Ex: Mangueira (Mangifera indica) - árvore adulta, aproximadamente 8m de altura, frutificando..."></textarea>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="form-group">
+                        <label>🏷️ Tags</label>
+                        <div id="tags-container" class="tags-container">
+                            <!-- Tags sugeridas -->
+                            <div class="tag-chip" data-tag="Árvore Frutífera">Árvore Frutífera</div>
+                            <div class="tag-chip" data-tag="Nativa">Nativa</div>
+                            <div class="tag-chip" data-tag="Exótica">Exótica</div>
+                            <div class="tag-chip" data-tag="Medicinal">Medicinal</div>
+                            <div class="tag-chip" data-tag="Ornamental">Ornamental</div>
+                            <div class="tag-chip" data-tag="Floração">Floração</div>
+                            <div class="tag-chip" data-tag="Frutificação">Frutificação</div>
+                        </div>
+                        <div class="custom-tag-input">
+                            <input type="text" id="input-custom-tag" placeholder="Adicionar tag personalizada...">
+                            <button id="btn-add-tag">+</button>
+                        </div>
+                        <div id="selected-tags" class="selected-tags"></div>
+                    </div>
+
+                    <!-- Data (automática) -->
+                    <div class="form-group">
+                        <label>📅 Data do Registro</label>
+                        <input type="text" id="input-date" readonly>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="btn-cancel" class="btn btn-secondary">Cancelar</button>
+                    <button id="btn-save" class="btn btn-primary">Salvar Registro</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Visualizar Registro -->
+        <div id="modal-view" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Detalhes do Registro</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div id="view-photo" class="view-photo"></div>
+                    <div class="view-info">
+                        <p><strong>📝 Descrição:</strong></p>
+                        <p id="view-description"></p>
+                        
+                        <p><strong>🏷️ Tags:</strong></p>
+                        <div id="view-tags" class="view-tags"></div>
+                        
+                        <p><strong>📍 Localização:</strong></p>
+                        <p id="view-coords"></p>
+                        
+                        <p><strong>📅 Data:</strong></p>
+                        <p id="view-date"></p>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="btn-delete" class="btn btn-danger">Excluir</button>
+                    <button id="btn-edit" class="btn btn-primary">Editar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Lista -->
+        <div id="modal-list" class="modal">
+            <div class="modal-content modal-full">
+                <div class="modal-header">
+                    <h2>Todos os Registros</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Filtros -->
+                    <div class="filters">
+                        <input type="text" id="filter-search" placeholder="🔍 Buscar na descrição...">
+                        <select id="filter-tag">
+                            <option value="">Todas as tags</option>
+                        </select>
+                        <select id="filter-sort">
+                            <option value="date-desc">Mais recentes</option>
+                            <option value="date-asc">Mais antigos</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Lista de registros -->
+                    <div id="list-container" class="list-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Estatísticas -->
+        <div id="modal-stats" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📊 Estatísticas</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div id="stats-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- localForage para armazenamento offline -->
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    
+    <!-- App JS -->
+    <script src="js/db.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+    
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
